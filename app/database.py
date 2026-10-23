@@ -52,8 +52,7 @@ def initialize(path):
             id INTEGER PRIMARY KEY, law_id INTEGER NOT NULL REFERENCES laws(id),
             version_id INTEGER NOT NULL REFERENCES versions(id),
             kind TEXT NOT NULL, detected_at TEXT NOT NULL,
-            before_body_id INTEGER REFERENCES bodies(id), after_body_id INTEGER NOT NULL REFERENCES bodies(id),
-            review_status TEXT NOT NULL DEFAULT '미확인', memo TEXT NOT NULL DEFAULT '');
+            before_body_id INTEGER REFERENCES bodies(id), after_body_id INTEGER NOT NULL REFERENCES bodies(id));
         CREATE TABLE IF NOT EXISTS jobs(
             id INTEGER PRIMARY KEY, started_at TEXT NOT NULL, finished_at TEXT,
             status TEXT NOT NULL, message TEXT NOT NULL DEFAULT '');

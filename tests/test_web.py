@@ -54,7 +54,7 @@ class WebTests(unittest.TestCase):
         self.assertEqual(response.status_code, 202)
         return self.client.get('/api/dashboard').json()
 
-    def test_end_to_end_baseline_versions_compare_review_report(self):
+    def test_end_to_end_baseline_versions_compare_report(self):
         data = self.check()
         self.assertEqual(len(data['laws']), 4)
         self.assertEqual(data['changes'], [])
@@ -75,12 +75,12 @@ class WebTests(unittest.TestCase):
         change = data['changes'][0]
         result = self.client.get(f"/api/changes/{change['id']}/compare").json()
         self.assertEqual(sum(a['kind']=='수정' for a in result['articles']),1)
-        response = self.client.patch(f"/api/changes/{change['id']}",headers=HEADERS,json={'status':'검토 완료','memo':'=가상 수식'})
-        self.assertEqual(response.status_code,200)
+        response = self.client.patch(f"/api/changes/{change['id']}",headers=HEADERS,json={'status':'검토 완료','memo':'test'})
+        self.assertEqual(response.status_code,404)
         csv = self.client.get('/api/report.csv').text
-        self.assertIn("'=가상 수식",csv)
-        self.assertIn('검토 완료',csv)
-        self.assertIn('=가상 수식',self.client.get('/api/dashboard').json()['changes'][0]['memo'])
+        self.assertIn('동일 버전 본문 변경',csv)
+        self.assertNotIn('검토 상태',csv)
+        self.assertNotIn('업무 메모',csv)
 
     def test_failed_law_preserves_its_baseline_and_others_continue(self):
         self.check()

@@ -21,11 +21,6 @@ class LawInput(BaseModel):
     official_id: str | None = Field(default=None, pattern=r'^\d{1,20}$')
 
 
-class ReviewInput(BaseModel):
-    status: str
-    memo: str = Field(default='', max_length=5000)
-
-
 def create_app(db_path=None, api=None, demo=False):
     path = str(db_path or default_path())
     if demo and db_path is None:
@@ -80,11 +75,10 @@ def create_app(db_path=None, api=None, demo=False):
         with connect(path) as db:
             laws = rows(db, '''SELECT l.*,
                 (SELECT count(*) FROM versions v WHERE v.law_id=l.id AND category='upcoming') AS upcoming_count,
-                (SELECT count(*) FROM changes c WHERE c.law_id=l.id AND review_status!='검토 완료') AS pending_count,
                 (SELECT message FROM runs r WHERE r.law_id=l.id ORDER BY r.id DESC LIMIT 1) AS last_message,
                 (SELECT status FROM runs r WHERE r.law_id=l.id ORDER BY r.id DESC LIMIT 1) AS last_status
                 FROM laws l WHERE active=1 ORDER BY id''')
-            changes = rows(db, '''SELECT c.*, l.name, v.effective, v.category FROM changes c
+            changes = rows(db, '''SELECT c.id,c.law_id,c.version_id,c.kind,c.detected_at,c.before_body_id,c.after_body_id, l.name, v.effective, v.category FROM changes c
                 JOIN laws l ON l.id=c.law_id JOIN versions v ON v.id=c.version_id
                 WHERE l.active=1 ORDER BY c.id DESC LIMIT 100''')
             jobs = rows(db, 'SELECT * FROM jobs ORDER BY id DESC LIMIT 10')
@@ -193,23 +187,13 @@ def create_app(db_path=None, api=None, demo=False):
                 bodies.append({k: json.loads(row[k]) for k in row.keys()})
         return compare(*bodies)
 
-    @app.patch('/api/changes/{change_id}')
-    def review(change_id: int, data: ReviewInput):
-        if data.status not in ('미확인', '검토 중', '검토 완료'):
-            raise HTTPException(400, '올바른 검토 상태를 선택하세요.')
-        with connect(path) as db:
-            if not db.execute('SELECT 1 FROM changes WHERE id=?', (change_id,)).fetchone():
-                raise HTTPException(404, '변경 이력을 찾을 수 없습니다.')
-            db.execute('UPDATE changes SET review_status=?,memo=? WHERE id=?', (data.status, data.memo, change_id))
-        return {'message': '검토 내용을 저장했습니다.'}
-
     @app.get('/api/report.csv')
     def report():
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['법령명', '변경 유형', '감지일시(UTC)', '시행일', '검토 상태', '업무 메모'])
+        writer.writerow(['법령명', '변경 유형', '감지일시(UTC)', '시행일'])
         with connect(path) as db:
-            records = rows(db, '''SELECT l.name,c.kind,c.detected_at,v.effective,c.review_status,c.memo FROM changes c
+            records = rows(db, '''SELECT l.name,c.kind,c.detected_at,v.effective FROM changes c
                 JOIN laws l ON l.id=c.law_id JOIN versions v ON v.id=c.version_id ORDER BY c.id DESC''')
         for record in records:
             values = list(record.values())

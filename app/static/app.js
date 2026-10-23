@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-const state = {law: null, detail: null, category: 'current', comparison: null, polling: null, demo: false, job: null, drafts: new Map(), detailToken: 0, bodyToken: 0};
+const state = {law: null, detail: null, category: 'current', comparison: null, polling: null, demo: false, job: null, detailToken: 0, bodyToken: 0};
 function node(tag, text, cls) {const n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n;}
 function showNotice(text, error=false) {$('notice').textContent=text; $('notice').className='notice'+(error?' error':''); $('notice').hidden=false;}
 function dateTime(value) {return value ? new Intl.DateTimeFormat('ko-KR',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Seoul'}).format(new Date(value)) : '아직 조회하지 않음';}
@@ -19,7 +19,6 @@ async function refresh() {
   $('setup').hidden = !data.demo && data.credential_configured;
   $('setup').textContent = data.demo ? '가상 예시 자료입니다. 아래 본문과 날짜는 화면 확인용이며 실제 법령 내용이 아닙니다. 실제 조회는 예시 모드를 종료하고 LAW_OC를 설정한 뒤 실행하세요.' : 'LAW_OC 인증값이 설정되지 않았습니다. 관심 법령은 등록할 수 있지만 실제 검색·수집에는 법제처 인증값과 네트워크 접근 설정이 필요합니다.';
   $('law-count').textContent=data.laws.length;
-  $('pending-count').textContent=data.laws.reduce((s,l)=>s+l.pending_count,0);
   $('upcoming-count').textContent=data.laws.reduce((s,l)=>s+l.upcoming_count,0);
   const job=data.jobs[0];
   $('job-status').textContent=job ? job.status : '아직 없음';
@@ -30,12 +29,11 @@ async function refresh() {
   $('law-list').replaceChildren();
   for(const law of data.laws) {
     const button=node('button',undefined,'law-card'+(state.law===law.id?' selected':''));
-    button.append(node('strong',law.name),node('small',law.last_status==='실패'?'최근 조회 실패 · 기존 자료 유지':`시행예정 ${law.upcoming_count} · 검토할 변경 ${law.pending_count}`));
+    button.append(node('strong',law.name),node('small',law.last_status==='실패'?'최근 조회 실패 · 기존 자료 유지':`시행예정 ${law.upcoming_count}`));
     button.addEventListener('click',safe(()=>selectLaw(law.id)));
     $('law-list').append(button);
   }
   if(!data.laws.length) $('law-list').append(node('p','관심 법령을 검색하거나 직접 등록하세요.','muted'));
-  renderChanges(data.changes);
   $('runs').replaceChildren();
   for(const run of data.runs) {const row=node('tr');for(const value of [run.name,dateTime(run.checked_at),run.status,run.message]) row.append(node('td',value));$('runs').append(row);}
   if(!data.runs.length) {const row=node('tr');const cell=node('td','조회 기록이 없습니다. ‘지금 확인’을 눌러 시작하세요.');cell.colSpan=4;row.append(cell);$('runs').append(row);}
@@ -126,28 +124,10 @@ function renderDiff() {
   $('compare-supplementary').replaceChildren();
   if(data.supplementary.changed || !$('changes-only').checked) {const box=node('details');box.append(node('summary',data.supplementary.changed?'부칙 변경 있음 — 펼쳐서 확인':'부칙 비교'));const columns=node('div',undefined,'compare-row');for(const text of [data.supplementary.before,data.supplementary.after]) {const col=node('div');col.append(node('pre',text || '부칙 없음'));columns.append(col);}box.append(columns);$('compare-supplementary').append(box);}
 }
-function renderChanges(changes) {
-  $('changes').replaceChildren();
-  if(!changes.length) {$('changes').append(node('p','아직 감지된 변경이 없습니다. 최초 수집 후 다음 조회부터 변경 여부를 확인합니다.','empty compact'));return;}
-  for(const change of changes) {
-    const card=node('article',undefined,'review-card');const heading=node('div',undefined,'review-title');
-    const title=node('div');title.append(node('strong',change.name),node('p',`${change.kind} · 감지 ${dateTime(change.detected_at)} · 시행 ${change.effective}`,'muted'));
-    const open=node('button','법령 확인');open.addEventListener('click',safe(async()=>{await selectLaw(change.law_id);$('law-detail').scrollIntoView({behavior:'smooth'});}));heading.append(title,open);card.append(heading);
-    if(change.before_body_id) {const compareButton=node('button','변경 당시 본문 비교');compareButton.addEventListener('click',safe(async()=>renderComparison(await api(`/api/changes/${change.id}/compare`))));card.append(compareButton);}
-    const form=node('form',undefined,'review-form');const statusWrap=node('div'),memoWrap=node('div');
-    const draft=state.drafts.get(change.id) || {status:change.review_status,memo:change.memo};
-    const select=node('select');select.id=`review-status-${change.id}`;select.setAttribute('aria-label',change.name+' 검토 상태');for(const status of ['미확인','검토 중','검토 완료']) {const op=node('option',status);op.value=status;select.append(op);}select.value=draft.status;
-    const statusLabel=node('label','검토 상태');statusLabel.htmlFor=select.id;statusWrap.append(statusLabel,select);
-    const memo=node('textarea');memo.id=`memo-${change.id}`;memo.value=draft.memo;memo.maxLength=5000;memo.placeholder='사업장 영향과 후속 조치를 기록하세요.';const memoLabel=node('label','업무 메모');memoLabel.htmlFor=memo.id;memoWrap.append(memoLabel,memo);
-    const keepDraft=()=>state.drafts.set(change.id,{status:select.value,memo:memo.value});select.addEventListener('change',keepDraft);memo.addEventListener('input',keepDraft);
-    const save=node('button','저장');save.type='submit';form.append(statusWrap,memoWrap,save);
-    form.addEventListener('submit',safe(async()=>{save.disabled=true;try {await api(`/api/changes/${change.id}`,'PATCH',{status:select.value,memo:memo.value});state.drafts.delete(change.id);showNotice('검토 내용을 저장했습니다.');await refresh();}finally{save.disabled=false;}}));card.append(form);$('changes').append(card);
-  }
-}
 $('check').addEventListener('click',safe(async()=>{$('check').disabled=true;try {await api('/api/check','POST');showNotice('조회 작업을 시작했습니다. 결과는 아래 조회 기록에 표시됩니다.');if(!state.polling) state.polling=setInterval(safe(()=>refresh()),2000);await refresh();}catch(error){$('check').disabled=false;throw error;}}));
 $('search-form').addEventListener('submit',safe(async()=>{const q=$('query').value.trim();if(!q) return;const button=$('search-form').querySelector('button');button.disabled=true;try {const result=await api('/api/search?q='+encodeURIComponent(q));$('search-results').replaceChildren();if(!result.length)$('search-results').append(node('p','검색 결과가 없습니다. 정확한 이름으로 다시 검색하세요.'));for(const law of result) {const add=node('button',law.name+' + 등록');add.addEventListener('click',safe(async()=>{const result=await api('/api/laws','POST',law);$('search-results').replaceChildren();showNotice('관심 법령을 등록했습니다. ‘지금 확인’으로 본문을 수집하세요.');await selectLaw(result.id);}));$('search-results').append(add);}}finally{button.disabled=false;}}));
 $('add-form').addEventListener('submit',safe(async()=>{const name=$('manual-name').value.trim();if(!name)return;const result=await api('/api/laws','POST',{name});$('manual-name').value='';showNotice('등록했습니다. 조회할 때 법령명이 정확히 일치하는지 확인합니다.');await selectLaw(result.id);}));
-$('remove').addEventListener('click',safe(async()=>{if(!state.law || !confirm('관심 목록에서 제외할까요? 수집·검토 이력은 보존됩니다.')) return;await api(`/api/laws/${state.law}`,'DELETE');state.law=null;state.detail=null;$('law-detail').hidden=true;$('law-empty').hidden=false;$('comparison').hidden=true;await refresh();showNotice('관심 목록에서 제외했습니다.');}));
+$('remove').addEventListener('click',safe(async()=>{if(!state.law || !confirm('관심 목록에서 제외할까요? 수집 이력은 보존됩니다.')) return;await api(`/api/laws/${state.law}`,'DELETE');state.law=null;state.detail=null;$('law-detail').hidden=true;$('law-empty').hidden=false;$('comparison').hidden=true;await refresh();showNotice('관심 목록에서 제외했습니다.');}));
 for(const button of document.querySelectorAll('.tabs button')) button.addEventListener('click',safe(()=>selectCategory(button.dataset.category)));
 $('version-select').addEventListener('change',safe(loadBody));
 $('compare').addEventListener('click',safe(async()=>renderComparison(await api(`/api/compare?before=${$('before').value}&after=${$('after').value}`))));
