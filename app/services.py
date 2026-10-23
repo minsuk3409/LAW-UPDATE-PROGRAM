@@ -1,5 +1,4 @@
 import difflib
-import fcntl
 import hashlib
 import json
 import sqlite3
@@ -7,10 +6,7 @@ from pathlib import Path
 
 from .database import connect, latest_body, rows, utcnow
 from .law_api import CollectionError
-
-
-class BusyError(Exception):
-    pass
+from .locking import acquire, BusyError
 
 
 def digest(value):
@@ -22,12 +18,7 @@ class Monitor:
         self.path, self.api = str(path), api
 
     def reserve(self):
-        lock = open(self.path + '.lock', 'a+')
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            lock.close()
-            raise BusyError('이미 조회가 진행 중입니다.') from None
+        lock = acquire(self.path + '.lock')
         try:
             with connect(self.path) as db:
                 db.execute("UPDATE jobs SET status='중단', finished_at=?, message='이전 실행이 중단되었습니다. 다시 조회하세요.' WHERE status='진행 중'", (utcnow(),))
