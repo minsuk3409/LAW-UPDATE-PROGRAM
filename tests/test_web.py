@@ -1,4 +1,6 @@
 import copy
+import io
+import json
 import tempfile
 from pathlib import Path
 import unittest
@@ -217,6 +219,23 @@ class APITests(unittest.TestCase):
         with patch.object(api,'request',return_value={'법령':{'기본정보':{'법령ID':'000000'}}}):
             with self.assertRaises(CollectionError):
                 api.body(version)
+
+    def test_remote_api_errors_have_actionable_safe_messages(self):
+        cases = [
+            ('OPEN API 호출 시 사용자 검증을 위하여 정확한 서버장비의 IP주소 및 도메인주소를 등록해 주세요.', 'CALLER_REGISTRATION'),
+            ('OC 인증값을 확인하세요.', 'API_AUTHENTICATION'),
+            ('신청한 서비스 권한이 없습니다.', 'API_PERMISSION'),
+            ('요청 횟수 초과', 'API_RATE_LIMIT'),
+            ('알 수 없는 응답', 'API_RESPONSE_ERROR'),
+        ]
+        for message, code in cases:
+            with self.subTest(code=code):
+                response = io.BytesIO(json.dumps({'result':False,'msg':message+' private-value'}).encode())
+                with patch('urllib.request.urlopen',return_value=response):
+                    with self.assertRaises(CollectionError) as error:
+                        LawAPI('private-value').search('법')
+                self.assertIn(code,str(error.exception))
+                self.assertNotIn('private-value',str(error.exception))
 
     def test_credentials_are_not_in_request_errors(self):
         api=LawAPI('private-value')

@@ -13,6 +13,38 @@ class CollectionError(Exception):
     pass
 
 
+
+def check_api_error(data):
+    """인증값이 섞일 수 있는 원문 대신 안전한 오류 분류만 노출합니다."""
+    if not isinstance(data, dict) or 'msg' not in data:
+        return
+    if isinstance(data.get('LawSearch'), dict) or isinstance(data.get('법령'), dict):
+        return
+    message = str(data.get('msg', ''))
+    lower = message.lower()
+    if any(word in lower for word in ('ip', '도메인', '서버장비')) and any(word in message for word in ('등록', '검증', '허용')):
+        raise CollectionError(
+            '[CALLER_REGISTRATION] 법제처가 호출 서버의 IP·도메인 등록 확인을 요구했습니다. '
+            '국가법령정보 공동활용의 API 신청 시스템 정보에서 실제 요청을 보내는 PC/서버의 등록 정보를 확인하세요. '
+            'IP 제한을 별도로 설정하지 않았어도 이 응답이 올 수 있습니다. '
+            '등록 정보가 맞다면 법제처 이용 지원에 이 오류 코드를 문의하세요. 인증값은 공유하지 마세요.')
+    if any(word in message for word in ('인증', '사용자', '로그인')) or 'oc' in lower:
+        raise CollectionError(
+            '[API_AUTHENTICATION] 법제처가 인증·사용자 확인 오류를 반환했습니다. '
+            'API인증키관리의 OC와 입력한 값, 해당 계정의 신청 상태를 확인한 후 다시 실행하세요. '
+            '인증값을 채팅이나 화면 캡처로 공유하지 마세요.')
+    if any(word in message for word in ('권한', '승인', '신청')):
+        raise CollectionError(
+            '[API_PERMISSION] 법제처가 신청·이용 권한 관련 오류를 반환했습니다. '
+            '시행일 기준 법령 목록·본문 API의 신청 및 승인 상태를 확인하세요.')
+    if any(word in message for word in ('초과', '횟수', '과다')):
+        raise CollectionError('[API_RATE_LIMIT] 법제처가 요청 한도 관련 오류를 반환했습니다. 잠시 후 다시 조회하세요.')
+    raise CollectionError(
+        '[API_RESPONSE_ERROR] 법제처가 정상 법령 데이터 대신 오류 응답을 반환했습니다. '
+        '국가법령정보 공동활용의 오류자가진단 또는 이용 지원에서 신청 상태를 확인하세요. '
+        '응답 원문에는 인증 정보가 포함될 수 있어 표시하지 않았습니다.')
+
+
 def scalar(value):
     if isinstance(value, (str, int)):
         return str(value).strip()
@@ -106,6 +138,7 @@ class LawAPI:
             raise CollectionError('법제처 요청 실패: 인증값·API 권한·네트워크 접근 및 응답 형식을 확인하세요.') from None
         if not isinstance(result, dict):
             raise CollectionError('API 최상위 응답 형식이 올바르지 않습니다.')
+        check_api_error(result)
         return result
 
     def search(self, query, category='current', exact=False, official_id=None):
