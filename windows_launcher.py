@@ -10,6 +10,14 @@ import webbrowser
 
 
 def main():
+    try:
+        from app.main import create_app
+        import uvicorn
+    except ModuleNotFoundError:
+        print('실행에 필요한 패키지가 설치되지 않았습니다.')
+        print('setup_windows.cmd를 다시 실행하고 Setup complete 메시지를 확인해 주세요.')
+        print('설치 실패 시 해당 창의 오류 내용을 확인해 주세요. 인증값은 입력할 필요가 없습니다.')
+        return 1
     print('안전보건 법령 모니터')
     print('1. 실제 법제처 API 사용')
     print('2. 인증 없이 가상 예시 화면 보기')
@@ -28,8 +36,6 @@ def main():
             print('인증값이 비어 있습니다.')
             return 1
         os.environ['LAW_OC'] = value
-    from app.main import create_app
-    import uvicorn
     app = create_app(demo=demo)
     # Retain the chosen socket until the server owns it, avoiding port races.
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -19,9 +19,11 @@ if errorlevel 1 goto failed
 if errorlevel 1 goto failed
 ".venv\Scripts\python.exe" -m pip check
 if errorlevel 1 goto failed
+".venv\Scripts\python.exe" -c "from app.main import create_app; import uvicorn"
+if errorlevel 1 goto failed
 echo.
 echo Setup complete. Double-click run_windows.cmd to start.
-pause
+if /i not "%~1"=="--no-pause" pause
 exit /b 0
 :missing_python
 echo.
@@ -29,10 +31,10 @@ echo Python 3.12 or newer is required.
 echo Install Python from https://www.python.org/downloads/windows/
 echo During installation, enable "Add python.exe to PATH" if offered.
 echo Then run setup_windows.cmd again.
-pause
+if /i not "%~1"=="--no-pause" pause
 exit /b 1
 :failed
 echo.
 echo Setup failed. Please keep this window open and report the error above.
-pause
+if /i not "%~1"=="--no-pause" pause
 exit /b 1

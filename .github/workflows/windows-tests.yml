@@ -20,6 +20,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install -r requirements.lock
-      - run: python -m unittest discover -s tests -v
+      - name: Run the Windows setup helper
+        shell: cmd
+        run: call setup_windows.cmd --no-pause
+      - run: .venv\Scripts\python.exe -m unittest discover -s tests -v
       - run: python -m py_compile windows_launcher.py
