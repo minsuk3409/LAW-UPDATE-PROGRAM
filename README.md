@@ -105,3 +105,16 @@ node --check app/static/app.js  # Node가 있는 경우
 - `tests/test_web.py`: 웹·저장·API 계약 테스트
 
 이전 `law_monitor.py`는 독립된 메타데이터 CLI 시제품으로 보존했습니다. 웹 DB와 연동되지 않으므로 새 작업에는 `python -m app.monitor`를 사용하세요.
+
+## 설치 없이 보는 단일 HTML 화면
+
+저장소 루트의 **`index.html`** 하나를 내려받아 브라우저에서 열면 됩니다. CSS와 JavaScript가 파일 안에 포함되어 Python 설치, 웹 서버, 외부 CDN 없이 동작합니다.
+
+- 개정 이전·현행·시행예정 선택, 조문·부칙 비교, 예시 법령 필터
+- 검토 상태·메모의 브라우저 저장 및 CSV 다운로드
+- 모든 법령명·본문·날짜는 **가상 예시**이며 실제 법제처 API 조회나 정기 모니터링은 하지 않습니다.
+- 브라우저 저장소가 차단되면 메모는 화면을 닫을 때 사라질 수 있으므로 CSV로 보관하세요. 다른 기기와 자동 공유되지 않습니다.
+
+인터넷 주소로 공유하려면 저장소의 **Settings → Pages → Deploy from a branch → main / (root) → Save**를 선택하세요. GitHub Pages가 배포되면 Pages 설정에 실제 접속 주소가 표시됩니다. GitHub의 파일 보기 화면은 HTML 실행 화면이 아니므로, 다운로드해 열거나 Pages로 게시해야 합니다.
+
+기존 Python 웹 프로그램과 단일 HTML 예시는 서로 별개로 동작합니다. 실제 API 인증값을 HTML에 넣지 마세요.
