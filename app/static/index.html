@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>안전보건 법령 모니터</title>
+<link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>
+</head>
+<body>
+<header><div class="brand"><span class="logo">§</span><div><strong>안전보건 법령 모니터</strong><small>SAFETY & HEALTH · LAW WATCH</small></div></div><span class="pill" id="mode">연결 중</span></header>
+<main>
+<div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+<section class="hero"><div><p class="eyebrow">법령의 변화, 놓치지 않도록</p><h1>우리 사업장의 법령 확인 공간</h1><p class="muted">개정 이전부터 현행, 시행예정까지. 원문을 확인하고 검토 기록을 남기세요.</p></div><button id="check" class="primary">지금 확인</button></section>
+<div id="setup" class="notice warning" hidden></div>
+<section class="stats" aria-label="모니터링 현황"><div><span>관심 법령</span><strong id="law-count">—</strong></div><div><span>검토할 변경</span><strong id="pending-count">—</strong></div><div><span>시행예정 버전</span><strong id="upcoming-count">—</strong></div><div><span>최근 조회</span><strong id="job-status" class="small-stat">아직 없음</strong><small id="job-time"></small></div></section>
+<div class="workspace">
+<aside class="panel"><div class="section-head"><h2>관심 법령</h2><span class="muted">WATCHLIST</span></div><form id="search-form"><label for="query">법령 검색</label><div class="input-row"><input id="query" placeholder="법령명 입력" maxlength="150" required><button type="submit">검색</button></div></form><div id="search-results" aria-live="polite"></div><details id="manual"><summary>정확한 법령명으로 직접 등록</summary><form id="add-form"><label for="manual-name">API 연결 후 이름 일치 여부를 확인합니다.</label><input id="manual-name" maxlength="150" required placeholder="예: 중대재해 처벌 등에 관한 법률"><button type="submit">관심 등록</button></form></details><div id="law-list"></div></aside>
+<section class="panel law-panel"><div id="law-empty" class="empty"><span class="empty-icon">§</span><h2>관심 법령을 선택하세요</h2><p>왼쪽 목록에서 법령을 선택하면<br>버전과 본문을 확인할 수 있습니다.</p></div><div id="law-detail" hidden><div class="section-head"><div><p class="eyebrow">LAW DETAILS</p><h2 id="law-name"></h2><p class="muted" id="last-success"></p></div><button id="remove" class="text-button">관심 해제</button></div><p class="annotation">구분은 마지막 성공한 API 조회 결과입니다. 최신 정보는 ‘지금 확인’으로 갱신하세요. 조문별 시행일·부칙의 적용례와 경과조치를 함께 확인해야 합니다.</p><div class="tabs" role="group" aria-label="법령 버전 구분"><button data-category="previous">개정 이전 <span></span></button><button data-category="current" class="active">현행 <span></span></button><button data-category="upcoming">시행예정 <span></span></button></div><div id="unconfirmed" class="notice warning" hidden></div><label for="version-select">조회할 버전</label><select id="version-select"></select><div id="version-empty" class="empty compact" hidden></div><div id="body" hidden><div class="version-meta" id="version-meta"></div><div class="section-head"><h3>법령 본문</h3><a id="official" target="_blank" rel="noopener noreferrer" hidden>공식 원문 ↗</a></div><div id="articles"></div><details class="supplementary"><summary>부칙 확인</summary><pre id="supplementary"></pre></details></div><section class="compare-controls"><h3>두 버전 비교</h3><div class="compare-selects"><div><label for="before">비교 기준</label><select id="before"></select></div><span>→</span><div><label for="after">비교 대상</label><select id="after"></select></div><button id="compare" class="primary">비교</button></div></section></div></section>
+</div>
+<section id="comparison" class="panel" hidden><div class="section-head"><div><p class="eyebrow">VERSION COMPARISON</p><h2 id="comparison-title">조문 비교</h2></div><label class="checkbox"><input type="checkbox" id="changes-only" checked> 변경 조문만</label></div><p id="compare-warning" class="annotation"></p><div class="compare-heading"><strong id="before-label">기준 본문</strong><strong id="after-label">대상 본문</strong></div><div id="compare-results"></div><div id="compare-supplementary"></div></section>
+<section class="panel"><div class="section-head"><div><p class="eyebrow">REVIEW INBOX</p><h2>변경 검토</h2></div><a class="button" href="/api/report.csv">CSV 다운로드</a></div><p class="muted">최초 수집은 기준 등록으로 처리합니다. 이후 새 버전·본문 변경을 발견하면 여기에 표시합니다. 최근 100건 표시.</p><div id="changes"></div></section>
+<section class="panel"><div class="section-head"><h2>조회 기록</h2><span class="muted">최근 50건 · 시각은 한국 표준시</span></div><div class="table-scroll"><table><thead><tr><th>법령</th><th>조회 시각</th><th>결과</th><th>상세</th></tr></thead><tbody id="runs"></tbody></table></div></section>
+<footer>국가법령정보 공동활용 API 기반 · 자동 비교는 검토를 돕는 자료입니다. 공식 원문과 부칙을 확인하세요.</footer>
+</main>
+</body></html>
